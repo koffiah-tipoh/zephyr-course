@@ -2,6 +2,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/drivers/sensor.h>
+#include "our_driver.h"
 
 #define SLEEP_TIME_MS 1000
 
@@ -27,6 +28,9 @@ void test_our_driver(void)
         struct sensor_value val;
         sensor_channel_get(our_dev, SENSOR_CHAN_ALL, &val);  /* LED OFF */
         LOG_INF("LED was: %d", val.val1);
+
+	/* Task 2: custom extension API, independent of the sensor API */
+	//our_driver_preset(our_dev, 3);
 }
 
 
