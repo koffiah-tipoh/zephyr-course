@@ -1,0 +1,10 @@
+config OUR_DRIVER
+	bool "Our Driver (LED sensor)"
+	default y
+	depends on DT_HAS_OUR_DRIVER_ENABLED
+	select GPIO
+	select SENSOR
+	help
+	  Enable the custom LED-backed sensor driver. sensor_sample_fetch()
+	  turns the LED on; sensor_channel_get() turns it off and reports
+	  its prior state.

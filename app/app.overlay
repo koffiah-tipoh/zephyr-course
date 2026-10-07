@@ -1,0 +1,11 @@
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+/ {
+	our_driver0: our_driver {
+		compatible = "our,driver";
+		/* Red LED (led2 / PB14) from the said board's said.dts */
+		gpios = <&gpiob 14 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+};
+
