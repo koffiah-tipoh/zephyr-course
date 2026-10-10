@@ -30,7 +30,7 @@ void test_our_driver(void)
         LOG_INF("LED was: %d", val.val1);
 
 	/* Task 2: custom extension API, independent of the sensor API */
-	//our_driver_preset(our_dev, 3);
+	our_driver_preset(our_dev, 3);
 }
 
 
