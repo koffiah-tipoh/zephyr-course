@@ -1,12 +1,11 @@
 /*
- * Ring Buffer Module - Homework Test Skeleton
+ * Ring Buffer Module - Unit Tests (L08 Task 1)
  *
- * test_fresh_state is provided as a worked example. Fill in the remaining
- * 7 ZTEST bodies according to TEST_SPEC.md. Stubs call ztest_test_skip()
- * so the binary builds and runs cleanly before each test is implemented.
+ * All tests follow TEST_SPEC.md. test_fresh_state was provided as the
+ * worked example; the other seven are implemented below.
  *
  * Run:
- *   west twister -T tests/ring_buf -p native_sim
+ *   west twister -T tests/ring_buf -p native_sim -v
  */
 
 #include <zephyr/ztest.h>
@@ -41,13 +40,19 @@ ZTEST(ring_buf_init, test_fresh_state)
 	zassert_equal(rb_count(), 0, "Fresh buffer count must be 0");
 }
 
+/* TEST_SPEC "Suite ring_buf_init" #2 */
 ZTEST(ring_buf_init, test_reinit_clears_state)
 {
-	/* TODO(l8-task1): Push a value, call rb_init(4) again, then
-	 * verify the buffer is empty and count is 0.
-	 * See TEST_SPEC.md "Suite ring_buf_init" #2.
+	/*
+	 * The push is setup, not the thing being verified, so it uses zassume:
+	 * if it fails the test is skipped as "not my job" instead of failing.
 	 */
-	ztest_test_skip();
+	zassume_ok(rb_push(99), "Precondition: push(99) must succeed");
+
+	rb_init(4);
+
+	zassert_true(rb_is_empty(), "Buffer must be empty after reinit");
+	zassert_equal(rb_count(), 0, "Count must be 0 after reinit");
 }
 
 /*
@@ -59,30 +64,48 @@ ZTEST(ring_buf_init, test_reinit_clears_state)
  */
 ZTEST_SUITE(ring_buf_push_pop, NULL, NULL, before, NULL, NULL);
 
+/* TEST_SPEC "Suite ring_buf_push_pop" #1 */
 ZTEST(ring_buf_push_pop, test_single_push_pop)
 {
-	/* TODO(l8-task1): rb_push(42), rb_pop(&v) -> v == 42, buffer empty after.
-	 * See TEST_SPEC.md "Suite ring_buf_push_pop" #1.
-	 */
-	ztest_test_skip();
+	int v = 0;
+
+	zassert_ok(rb_push(42), "push(42) must succeed");
+	zassert_ok(rb_pop(&v), "pop must succeed");
+	zassert_equal(v, 42, "Popped %d, expected 42", v);
+	zassert_true(rb_is_empty(), "Buffer must be empty after the pop");
 }
 
+/* TEST_SPEC "Suite ring_buf_push_pop" #2 */
 ZTEST(ring_buf_push_pop, test_fifo_order)
 {
-	/* TODO(l8-task1): rb_push(1), rb_push(2), rb_push(3); pop three times
-	 * and verify the values come out as 1, 2, 3 in that order.
-	 * See TEST_SPEC.md "Suite ring_buf_push_pop" #2.
-	 */
-	ztest_test_skip();
+	int v = 0;
+
+	for (int i = 1; i <= 3; i++) {
+		zassert_ok(rb_push(i), "push(%d) must succeed", i);
+	}
+
+	for (int expected = 1; expected <= 3; expected++) {
+		zassert_ok(rb_pop(&v), "pop must succeed");
+		zassert_equal(v, expected,
+			      "FIFO order broken: popped %d, expected %d",
+			      v, expected);
+	}
+
+	zassert_true(rb_is_empty(), "Buffer must be empty after three pops");
 }
 
+/* TEST_SPEC "Suite ring_buf_push_pop" #3 */
 ZTEST(ring_buf_push_pop, test_push_full_returns_enospc)
 {
-	/* TODO(l8-task1): Fill the buffer to its capacity of 4, then push
-	 * one more value -> -ENOSPC.
-	 * See TEST_SPEC.md "Suite ring_buf_push_pop" #3.
-	 */
-	ztest_test_skip();
+	for (int i = 1; i <= 4; i++) {
+		zassert_ok(rb_push(i), "push(%d) must succeed", i);
+	}
+
+	zassert_true(rb_is_full(), "Buffer must be full after 4 pushes");
+	zassert_equal(rb_push(99), -ENOSPC,
+		      "push to a full buffer must return -ENOSPC");
+	zassert_equal(rb_count(), 4,
+		      "Rejected push must not consume a slot");
 }
 
 /*
@@ -94,27 +117,37 @@ ZTEST(ring_buf_push_pop, test_push_full_returns_enospc)
  */
 ZTEST_SUITE(ring_buf_boundaries, NULL, NULL, before, NULL, NULL);
 
+/* TEST_SPEC "Suite ring_buf_boundaries" #1 */
 ZTEST(ring_buf_boundaries, test_peek_does_not_consume)
 {
-	/* TODO(l8-task1): rb_push(7); rb_peek(&v) -> v == 7; rb_peek(&v) again
-	 * -> v == 7; rb_count() still == 1.
-	 * See TEST_SPEC.md "Suite ring_buf_boundaries" #1.
-	 */
-	ztest_test_skip();
+	int v = 0;
+
+	zassume_ok(rb_push(7), "Precondition: push(7) must succeed");
+
+	zassert_ok(rb_peek(&v), "First peek must succeed");
+	zassert_equal(v, 7, "First peek returned %d, expected 7", v);
+
+	v = 0; /* clear it, so the second peek has to write the value again */
+	zassert_ok(rb_peek(&v), "Second peek must succeed");
+	zassert_equal(v, 7, "Second peek returned %d, expected 7", v);
+
+	zassert_equal(rb_count(), 1, "Peek must not consume the element");
 }
 
+/* TEST_SPEC "Suite ring_buf_boundaries" #2 */
 ZTEST(ring_buf_boundaries, test_pop_null_returns_einval)
 {
-	/* TODO(l8-task1): rb_pop(NULL) -> -EINVAL.
-	 * See TEST_SPEC.md "Suite ring_buf_boundaries" #2.
-	 */
-	ztest_test_skip();
+	zassert_equal(rb_pop(NULL), -EINVAL,
+		      "rb_pop(NULL) must return -EINVAL");
 }
 
+/* TEST_SPEC "Suite ring_buf_boundaries" #3 */
 ZTEST(ring_buf_boundaries, test_is_full_after_fill)
 {
-	/* TODO(l8-task1): push 4 values -> rb_is_full() == true, rb_count() == 4.
-	 * See TEST_SPEC.md "Suite ring_buf_boundaries" #3.
-	 */
-	ztest_test_skip();
+	for (int i = 1; i <= 4; i++) {
+		zassert_ok(rb_push(i), "push(%d) must succeed", i);
+	}
+
+	zassert_true(rb_is_full(), "Buffer must report full after 4 pushes");
+	zassert_equal(rb_count(), 4, "Count must be 4 when full");
 }
